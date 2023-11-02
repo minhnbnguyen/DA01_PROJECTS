@@ -1,20 +1,20 @@
 /* In this project, I performed data cleaning for the file sales_data_clea_rfm */
 -- Step 1: The raw data are all in VARCHAR. Convert each field into suitable data type
 ALTER TABLE sales_dataset_rfm_prj 
-  ALTER COLUMN ordernumber TYPE numeric
+  ALTER COLUMN ordernumber TYPE integer
   USING (ordernumber::numeric);
 
 ALTER TABLE sales_dataset_rfm_prj
-  ALTER COLUMN quantityordered TYPE smallint
-  USING (quantityordered::smallint);
+  ALTER COLUMN quantityordered TYPE integer
+  USING (quantityordered::integer);
 
 ALTER TABLE sales_dataset_rfm_prj
   ALTER COLUMN priceeach TYPE decimal
   USING (priceeach::decimal);
 
 ALTER TABLE sales_dataset_rfm_prj
-  ALTER COLUMN orderlinenumber TYPE numeric
-  USING (quantityordered::numeric);
+  ALTER COLUMN orderlinenumber TYPE integer
+  USING (quantityordered::integer);
 
 ALTER TABLE sales_dataset_rfm_prj
   ALTER COLUMN sales TYPE decimal
@@ -25,56 +25,12 @@ ALTER TABLE sales_dataset_rfm_prj
   USING (orderdate::timestamp);
 
 ALTER TABLE sales_dataset_rfm_prj
-  ALTER COLUMN productline TYPE text
-  USING (orderdate::text);
-
-ALTER TABLE sales_dataset_rfm_prj
-  ALTER COLUMN status TYPE text
-  USING (status::text);
-
-ALTER TABLE sales_dataset_rfm_prj
   ALTER COLUMN msrp TYPE numeric
   USING (msrp::numeric);
 
 ALTER TABLE sales_dataset_rfm_prj
   ALTER COLUMN productcode TYPE char(8)
   USING (productcode::char(8));
-
-ALTER TABLE sales_dataset_rfm_prj
-  ALTER COLUMN customername TYPE text
-  USING (customername:: text);
-
-ALTER TABLE sales_dataset_rfm_prj
-  ALTER COLUMN addressline1 TYPE text
-  USING (addressline1:: text);
-
-ALTER TABLE sales_dataset_rfm_prj
-  ALTER COLUMN addressline2 TYPE text
-  USING (addressline2:: text);
-
-ALTER TABLE sales_dataset_rfm_prj
-  ALTER COLUMN city TYPE text
-  USING (city:: text);
-
-ALTER TABLE sales_dataset_rfm_prj
-  ALTER COLUMN state TYPE text
-  USING (state:: text);
-
-ALTER TABLE sales_dataset_rfm_prj
-  ALTER COLUMN country TYPE text
-  USING (country:: text);
-
-ALTER TABLE sales_dataset_rfm_prj
-  ALTER COLUMN territory TYPE text
-  USING (territory:: text);
-
-ALTER TABLE sales_dataset_rfm_prj
-  ALTER COLUMN contactfullname TYPE text
-  USING (contactfullname:: text);
-
-ALTER TABLE sales_dataset_rfm_prj 
-  ALTER COLUMN dealsize TYPE text
-  USING (dealsize:: text);
 -- Step 2: Check NULL/BLANK
 SELECT ordernumber, quantityordered, priceeach, orderlinenumber, sales, orderdate
 FROM sales_dataset_rfm_prj 
