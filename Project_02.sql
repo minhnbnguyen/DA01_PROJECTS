@@ -29,10 +29,8 @@ FROM c JOIN b ON c.user_id = b.user_id
 WHERE b.month_year IS NOT NULL
 GROUP BY b.month_year
 ORDER BY b.month_year
-/* Conclusion: Both total users and total orders had a steady growth from 2019
-and reached its peak at 2022-11, with 0.91k users and 1.04k orders. After that,
-both had a significant drop at the beginning of 2023 to 0.16k users and 0.18k orders.
-It was stable in that range until another drop at 2023-11. */
+/* Insight: Both total users and total orders had a steady growth from 2019 and reached its peak at 2022-11, with 0.91k users and 1.04k orders. After that, 
+  both had a significant drop at the beginning of 2023 to 0.16k users and 0.18k orders. It was stable in that range until another drop at 2023-11. */
 -- 2: Average order value and total users each month
 WITH a AS (
 SELECT user_id,
@@ -54,10 +52,10 @@ JOIN b ON c.user_id=b.user_id
 WHERE month_year BETWEEN '2019-01' AND '2022-04'
 GROUP BY b.month_year
 ORDER BY b.month_year
-/* Conclusion: total distinct users and AOV experienced steady growth and reached 
-its peak at 2023-10 (9.21k distinct users and 0.18k AOV), then plummeted
-*/
+/* Insight: */
 -- 3: Customer in each age group
+/* Insight: */
+-- 4: Top 5 products each month
 WITH d AS (
 SELECT product_id, EXTRACT (YEAR FROM created_at) ||"-"|| EXTRACT (MONTH FROM created_at) AS time
 FROM bigquery-public-data.thelook_ecommerce.order_items),
@@ -89,7 +87,7 @@ FROM ranking
 WHERE rank_per_month IN (1,2,3,4,5)
 GROUP BY month_year, product_id, product_name, sales, cost, profit, rank_per_month
 ORDER BY month_year, rank_per_month
--- 5: Doanh thu tinh toi hien tai tren moi danh muc
+-- 5: Revenue for each product category
 WITH a AS (
 SELECT product_id, order_id,
 EXTRACT (DATE FROM delivered_at) AS time
