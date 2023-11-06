@@ -95,9 +95,18 @@ SELECT product_id, order_id,
 EXTRACT (DATE FROM delivered_at) AS time
 FROM bigquery-public-data.thelook_ecommerce.order_items
 WHERE status = "Complete"
-AND delivered_at BETWEEN "2022-01-15" AND "2022-04-15")
-SELECT a.time, b.category AS product_categories,
-COUNT (a.order_id) 
-FROM bigquery-public-data.thelook_ecommerce.products AS b
-JOIN a ON a.product_id=b.id
-GROUP BY b.category, a.time
+AND delivered_at BETWEEN "2022-01-15" AND "2022-04-15"),
+b AS (
+SELECT a.time, o.product_id,
+SUM (CASE
+  WHEN o.status = "Complete" THEN 1
+  ELSE 0 
+END) AS total_sales
+FROM bigquery-public-data.thelook_ecommerce.order_items AS o
+JOIN a ON a.product_id=o.product_id
+GROUP BY a.time, o.product_id)
+SELECT b.time, b.product_id,
+b.total_sales*p.retail_price AS rev
+FROM bigquery-public-data.thelook_ecommerce.products AS p
+JOIN b ON b.product_id=p.id
+GROUP BY b.time, b.product_id, b.total_sales, p.retail_price
