@@ -90,3 +90,14 @@ WHERE rank_per_month IN (1,2,3,4,5)
 GROUP BY month_year, product_id, product_name, sales, cost, profit, rank_per_month
 ORDER BY month_year, rank_per_month
 -- 5: Doanh thu tinh toi hien tai tren moi danh muc
+WITH a AS (
+SELECT product_id, order_id,
+EXTRACT (DATE FROM delivered_at) AS time
+FROM bigquery-public-data.thelook_ecommerce.order_items
+WHERE status = "Complete"
+AND delivered_at BETWEEN "2022-01-15" AND "2022-04-15")
+SELECT a.time, b.category AS product_categories,
+COUNT (a.order_id) 
+FROM bigquery-public-data.thelook_ecommerce.products AS b
+JOIN a ON a.product_id=b.id
+GROUP BY b.category, a.time
