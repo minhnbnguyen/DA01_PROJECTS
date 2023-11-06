@@ -54,6 +54,32 @@ GROUP BY b.month_year
 ORDER BY b.month_year
 /* Insight: */
 -- 3: Customer in each age group
+WITH a AS (
+SELECT first_name, last_name, gender, age,
+CASE
+  WHEN age = (SELECT MAX (age) FROM bigquery-public-data.thelook_ecommerce.users)
+  THEN "oldest"
+  WHEN age = (SELECT MIN (age) FROM bigquery-public-data.thelook_ecommerce.users)
+  THEN "youngest"
+  ELSE NULL
+END AS tag
+FROM bigquery-public-data.thelook_ecommerce.users
+WHERE created_at BETWEEN "2019-01-01" AND "2022-04-30"),
+oldest AS (
+SELECT age,
+SUM (CASE WHEN tag = "oldest" THEN 1 ELSE 0 END) AS total
+FROM a
+WHERE tag = "oldest"
+GROUP BY age),
+youngest AS (
+SELECT age,
+SUM (CASE WHEN tag = "youngest" THEN 1 ELSE 0 END) AS total
+FROM a
+WHERE tag = "youngest"
+GROUP BY age)
+SELECT age, total FROM oldest
+UNION ALL
+SELECT age, total FROM youngest
 /* Insight: */
 -- 4: Top 5 products each month
 WITH d AS (
