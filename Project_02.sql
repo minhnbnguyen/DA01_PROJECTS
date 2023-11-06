@@ -58,33 +58,6 @@ ORDER BY b.month_year
 its peak at 2023-10 (9.21k distinct users and 0.18k AOV), then plummeted
 */
 -- 3: Customer in each age group
-WITH a AS (
-SELECT first_name, last_name, gender, age,
-CASE
-  WHEN age = (SELECT MAX (age) FROM bigquery-public-data.thelook_ecommerce.users)
-  THEN "oldest"
-  WHEN age = (SELECT MIN (age) FROM bigquery-public-data.thelook_ecommerce.users)
-  THEN "youngest"
-  ELSE NULL
-END AS tag
-FROM bigquery-public-data.thelook_ecommerce.users
-WHERE created_at BETWEEN "2019-01-01" AND "2022-04-30"),
-oldest AS (
-SELECT age,
-SUM (CASE WHEN tag = "oldest" THEN 1 ELSE 0 END) AS total
-FROM a
-WHERE tag = "oldest"
-GROUP BY age),
-youngest AS (
-SELECT age,
-SUM (CASE WHEN tag = "youngest" THEN 1 ELSE 0 END) AS total
-FROM a
-WHERE tag = "youngest"
-GROUP BY age)
-SELECT age, total FROM oldest
-UNION ALL
-SELECT age, total FROM youngest
--- 4: Top 5 items each month
 WITH d AS (
 SELECT product_id, EXTRACT (YEAR FROM created_at) ||"-"|| EXTRACT (MONTH FROM created_at) AS time
 FROM bigquery-public-data.thelook_ecommerce.order_items),
@@ -93,22 +66,27 @@ SELECT product_id, CASE WHEN LENGTH (time) <7 THEN LEFT (time,5) || "0" || RIGHT
 FROM d),
 c AS
 (SELECT id, retail_price-cost AS profit 
-FROM bigquery-public-data.thelook_ecommerce.products)
-SELECT e.month_year, b.product_id, a.name AS product_name,
-COUNT (b.inventory_item_id) AS sales,
-a.cost, c.profit
-FROM bigquery-public-data.thelook_ecommerce.products AS a
-JOIN bigquery-public-data.thelook_ecommerce.order_items AS b ON a.id=b.product_id
-JOIN c ON a.id=c.id
-JOIN e ON a.id=e.product_id
-WHERE b.status = "Complete"
-GROUP BY b.product_id, a.name, a.cost, c.profit, e.month_year),
+FROM bigquery-public-data.thelook_ecommerce.products),
+a AS (
+SELECT DISTINCT b.id, e.month_year,
+COUNT (*) OVER (PARTITION BY b.id, e.month_year) AS sales
+FROM bigquery-public-data.thelook_ecommerce.order_items AS b
+JOIN e ON b.id=e.product_id),
 i AS (
-SELECT product_id, profit*sales OVER (PARTITION BY product_id) AS total_profit
-FROM h)
-SELECT h.month_year, h.product_id, h.product_name, h.sales, h.cost, i.total_profit,
-DENSE_RANK () OVER (PARTITION BY h.month_year ORDER BY i.total_profit DESC) AS rank_per_month
-FROM i JOIN h ON i.product_id=h.product_id
-GROUP BY h.month_year, h.product_id, h.product_name, h.sales, h.cost, i.total_profit
-ORDER BY DENSE_RANK () OVER (PARTITION BY h.month_year ORDER BY i.total_profit DESC)
+SELECT a.month_year, a.id AS product_id,
+g.name AS product_name, a.sales, g.cost, c.profit*a.sales AS profit
+FROM bigquery-public-data.thelook_ecommerce.products AS g
+JOIN bigquery-public-data.thelook_ecommerce.order_items AS h ON g.id=h.product_id
+JOIN a ON a.id=g.id
+JOIN c ON c.id=a.id
+WHERE h.status = "Complete"),
+ranking AS (
+SELECT month_year, product_id, product_name, sales, cost, profit,
+DENSE_RANK () OVER (PARTITION BY month_year ORDER BY profit DESC) AS rank_per_month
+FROM i)
+SELECT month_year, product_id, product_name, sales, cost, profit, rank_per_month
+FROM ranking
+WHERE rank_per_month IN (1,2,3,4,5)
+GROUP BY month_year, product_id, product_name, sales, cost, profit, rank_per_month
+ORDER BY month_year, rank_per_month
 -- 5: Doanh thu tinh toi hien tai tren moi danh muc
