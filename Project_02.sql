@@ -52,7 +52,7 @@ JOIN b ON c.user_id=b.user_id
 WHERE month_year BETWEEN '2019-01' AND '2022-04'
 GROUP BY b.month_year
 ORDER BY b.month_year
-/* Insight: */
+/* Insight: Average order value is stable throughout the whole period, roughly around 0.17k-0.13k. On the other hand, total users increased steadily from 0.05k at 2019-01 and reached peaked at 2.34k at 2022-03*/
 -- 3: Customer in each age group
 WITH a AS (
 SELECT first_name, last_name, gender, age,
@@ -80,7 +80,7 @@ GROUP BY age)
 SELECT age, total FROM oldest
 UNION ALL
 SELECT age, total FROM youngest
-/* Insight: */
+/* Insight: The youngest customer age is 12 with 1175 users. The oldest age is 70 with 1129 users*/
 -- 4: Top 5 products each month
 WITH d AS (
 SELECT product_id, EXTRACT (YEAR FROM created_at) ||"-"|| EXTRACT (MONTH FROM created_at) AS time
@@ -113,7 +113,7 @@ FROM ranking
 WHERE rank_per_month IN (1,2,3,4,5)
 GROUP BY month_year, product_id, product_name, sales, cost, profit, rank_per_month
 ORDER BY month_year, rank_per_month
--- 5: Revenue for each product category
+-- 5: Revenue for each product category (haven't finished)
 WITH a AS (
 SELECT product_id, order_id,
 EXTRACT (DATE FROM delivered_at) AS time
