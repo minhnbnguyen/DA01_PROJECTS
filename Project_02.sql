@@ -89,48 +89,44 @@ e AS (
 SELECT product_id, CASE WHEN LENGTH (time) <7 THEN LEFT (time,5) || "0" || RIGHT (time,1) ELSE time END AS month_year
 FROM d),
 c AS
-(SELECT id, retail_price-cost AS profit 
-FROM bigquery-public-data.thelook_ecommerce.products),
+(SELECT p.id, o.sale_price-p.cost AS profit 
+FROM bigquery-public-data.thelook_ecommerce.products AS p
+JOIN bigquery-public-data.thelook_ecommerce.order_items AS o
+ON p.id=o.product_id
+GROUP BY p.id,o.sale_price, p.cost),
 a AS (
 SELECT DISTINCT b.id, e.month_year,
-COUNT (*) OVER (PARTITION BY b.id, e.month_year) AS sales
+COUNT (b.order_id) OVER (PARTITION BY b.id, e.month_year) AS total_order
 FROM bigquery-public-data.thelook_ecommerce.order_items AS b
 JOIN e ON b.id=e.product_id),
 i AS (
 SELECT a.month_year, a.id AS product_id,
-g.name AS product_name, a.sales, g.cost, c.profit*a.sales AS profit
+g.name AS product_name, h.sale_price AS sale, g.cost, c.profit*a.total_order AS profit
 FROM bigquery-public-data.thelook_ecommerce.products AS g
 JOIN bigquery-public-data.thelook_ecommerce.order_items AS h ON g.id=h.product_id
 JOIN a ON a.id=g.id
 JOIN c ON c.id=a.id
 WHERE h.status = "Complete"),
 ranking AS (
-SELECT month_year, product_id, product_name, sales, cost, profit,
+SELECT month_year, product_id, product_name, sale, cost, profit,
 DENSE_RANK () OVER (PARTITION BY month_year ORDER BY profit DESC) AS rank_per_month
 FROM i)
-SELECT month_year, product_id, product_name, sales, cost, profit, rank_per_month
+SELECT month_year, product_id, product_name, sale, cost, profit, rank_per_month
 FROM ranking
 WHERE rank_per_month IN (1,2,3,4,5)
-GROUP BY month_year, product_id, product_name, sales, cost, profit, rank_per_month
+GROUP BY month_year, product_id, product_name, sale, cost, profit, rank_per_month
 ORDER BY month_year, rank_per_month
 -- 5: Revenue for each product category (haven't finished)
-WITH a AS (
-SELECT product_id, order_id,
-EXTRACT (DATE FROM delivered_at) AS time
-FROM bigquery-public-data.thelook_ecommerce.order_items
-WHERE status = "Complete"
-AND delivered_at BETWEEN "2022-01-15" AND "2022-04-15"),
-b AS (
-SELECT a.time, o.product_id,
-SUM (CASE
-  WHEN o.status = "Complete" THEN 1
-  ELSE 0 
-END) AS total_sales
-FROM bigquery-public-data.thelook_ecommerce.order_items AS o
-JOIN a ON a.product_id=o.product_id
-GROUP BY a.time, o.product_id)
-SELECT b.time, b.product_id,
-b.total_sales*p.retail_price AS rev
-FROM bigquery-public-data.thelook_ecommerce.products AS p
-JOIN b ON b.product_id=p.id
-GROUP BY b.time, b.product_id, b.total_sales, p.retail_price
+SELECT *
+FROM (
+SELECT 
+DATE(a.created_at) as dates ,
+b.category as product_categories,
+SUM(a.sale_price) OVER (PARTITION BY b.category ORDER BY DATE(a.created_at)) AS revenue
+FROM bigquery-public-data.thelook_ecommerce.order_items a
+LEFT JOIN bigquery-public-data.thelook_ecommerce.products b
+ON a.product_id = b.id
+)
+WHERE DATE_DIFF(DATE '2022-04-15',dates, DAY) BETWEEN 0 AND 90
+GROUP BY dates,product_categories, revenue
+ORDER BY dates
