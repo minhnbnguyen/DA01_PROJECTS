@@ -4,56 +4,44 @@ Access the dataset here:
 https://console.cloud.google.com/marketplace/product/bigquery-public-data/thelook-ecommerce?q=search&referrer=search&project=sincere-torch-350709 */
 -- I) Ad-hoc tasks
 -- 1) Total users and total orders each month
-WITH a AS (
-SELECT user_id,
-EXTRACT (YEAR FROM delivered_at) ||"-"|| EXTRACT (MONTH FROM delivered_at) AS time
-FROM bigquery-public-data.thelook_ecommerce.orders),
-b AS (
-SELECT user_id,
-CASE
-  WHEN LENGTH (time) <7 THEN LEFT (time,5) || "0" || RIGHT (time,1)
-  ELSE time
-END AS month_year
-FROM a),
-c AS (
-SELECT DISTINCT user_id,
-COUNT (order_id) AS orders
-FROM bigquery-public-data.thelook_ecommerce.orders
-WHERE delivered_at BETWEEN '2019-01-01' AND '2022-12-31'
-  AND returned_at IS NULL
-GROUP BY user_id)
-SELECT b.month_year,
-COUNT (c.user_id) AS total_user,
-SUM (c.orders) AS total_order
-FROM c JOIN b ON c.user_id = b.user_id
-WHERE b.month_year IS NOT NULL
-GROUP BY b.month_year
-ORDER BY b.month_year
-/* Insight: Both total users and total orders had a steady growth from 2019 and reached its peak at 2022-11, with 0.91k users and 1.04k orders. After that, 
-  both had a significant drop at the beginning of 2023 to 0.16k users and 0.18k orders. It was stable in that range until another drop at 2023-11. */
--- 2: Average order value and total users each month
-WITH a AS (
-SELECT user_id,
-EXTRACT (YEAR FROM created_at) ||"-"|| EXTRACT (MONTH FROM created_at) AS time
-FROM bigquery-public-data.thelook_ecommerce.order_items),
-b AS (
-SELECT user_id,
-CASE
-  WHEN LENGTH (time) <7 THEN LEFT (time,5) || "0" || RIGHT (time,1)
-  ELSE time
-END AS month_year
-FROM a)
 SELECT
-b.month_year,
-COUNT (DISTINCT c.user_id) AS distinct_users,
-ROUND (SUM (c.sale_price)/COUNT(DISTINCT c.order_id),2) AS average_order_value
-FROM bigquery-public-data.thelook_ecommerce.order_items AS c
-JOIN b ON c.user_id=b.user_id
-WHERE month_year BETWEEN '2019-01' AND '2022-04'
-GROUP BY b.month_year
-ORDER BY b.month_year
-/* Insight: Average order value is stable throughout the whole period, roughly around 0.17k-0.13k. On the other hand, total users increased steadily from 0.05k at 2019-01 and reached peaked at 2.34k at 2022-03*/
+EXTRACT (YEAR FROM created_at) ||"-"|| EXTRACT (MONTH FROM created_at) AS month_year,
+COUNT (order_id) AS total_order,
+COUNT (DISTINCT user_id) As total_user
+FROM bigquery-public-data.thelook_ecommerce.orders
+WHERE created_at BETWEEN '2019-01-01' AND '2022-04-30'
+AND status = "Complete"
+GROUP BY 1
+ORDER BY 1
+/* Insight: Both total users and total orders had a steady growth over the months and soared over the last months of the year and then plummeted in the first months --> High demand at the year end */
+-- 2) Average Order Value and total users each month
+-- Total orders and customers each month
+WITH a AS (
+SELECT
+EXTRACT (YEAR FROM created_at) ||"-"|| EXTRACT (MONTH FROM created_at) AS month_year,
+COUNT (DISTINCT user_id) AS total_user,
+COUNT (order_id) AS total_order
+FROM bigquery-public-data.thelook_ecommerce.orders
+WHERE DATE (created_at) BETWEEN '2019-01-01' AND '2022-04-30'
+GROUP BY 1
+ORDER BY 1),
+-- Total or sale per month
+b AS (
+SELECT
+EXTRACT (YEAR FROM created_at) ||"-"|| EXTRACT (MONTH FROM created_at) AS month_year,
+SUM (sale_price) AS sum
+FROM bigquery-public-data.thelook_ecommerce.order_items
+WHERE DATE (created_at) BETWEEN '2019-01-01' AND '2022-04-30'
+GROUP BY 1)
+-- AOV and total user each month
+SELECT a.month_year,
+b.sum/a.total_order AS average_order_value,
+a.total_user AS distinct_users
+FROM a JOIN b ON a.month_year=b.month_year
+ORDER BY 1
+/* Insight: Both AOV had a steady growth over the months and soared over the last months of the year and then plummeted in the first months --> High demand at the year end*/
 -- 3: Customer in each age group
+-- Find the smallest age and largest age for ech gender
 WITH a AS (
 SELECT first_name, last_name, gender, age,
 CASE
