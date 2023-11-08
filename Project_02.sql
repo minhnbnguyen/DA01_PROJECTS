@@ -18,26 +18,21 @@ ORDER BY 1
 -- Total orders and customers each month
 WITH a AS (
 SELECT
-EXTRACT (YEAR FROM created_at) ||"-"|| EXTRACT (MONTH FROM created_at) AS month_year,
-COUNT (DISTINCT user_id) AS total_user,
-COUNT (order_id) AS total_order
-FROM bigquery-public-data.thelook_ecommerce.orders
-WHERE DATE (created_at) BETWEEN '2019-01-01' AND '2022-04-30'
+EXTRACT (YEAR FROM o.created_at) ||"-"|| EXTRACT (MONTH FROM o.created_at) AS month_year,
+COUNT (DISTINCT o.user_id) AS total_user,
+COUNT (o.order_id) AS total_order,
+SUM (i.sale_price) AS sum
+FROM bigquery-public-data.thelook_ecommerce.orders AS o
+JOIN bigquery-public-data.thelook_ecommerce.order_items AS i
+ON o.order_id=i.order_id
+WHERE DATE (o.created_at) BETWEEN '2019-01-01' AND '2022-04-30'
 GROUP BY 1
-ORDER BY 1),
--- Total or sale per month
-b AS (
-SELECT
-EXTRACT (YEAR FROM created_at) ||"-"|| EXTRACT (MONTH FROM created_at) AS month_year,
-SUM (sale_price) AS sum
-FROM bigquery-public-data.thelook_ecommerce.order_items
-WHERE DATE (created_at) BETWEEN '2019-01-01' AND '2022-04-30'
-GROUP BY 1)
+ORDER BY 1)
 -- AOV and total user each month
-SELECT a.month_year,
-b.sum/a.total_order AS average_order_value,
-a.total_user AS distinct_users
-FROM a JOIN b ON a.month_year=b.month_year
+SELECT month_year,
+sum/total_order AS average_order_value,
+total_user AS distinct_users
+FROM a
 ORDER BY 1
 /* Insight: Both AOV had a steady growth over the months and soared over the last months of the year and then plummeted in the first months --> High demand at the year end*/
 -- 3: Customer in each age group
