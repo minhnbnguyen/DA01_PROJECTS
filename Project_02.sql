@@ -42,51 +42,67 @@ ORDER BY 1
 /* Insight: Both AOV had a steady growth over the months and soared over the last months of the year and then plummeted in the first months --> High demand at the year end*/
 -- 3: Customer in each age group
 -- Find the smallest age and largest age for ech gender
-WITH a AS (
-SELECT first_name, last_name, gender, age,
-CASE
-  WHEN age = (SELECT MAX (age) FROM bigquery-public-data.thelook_ecommerce.users)
-  THEN "oldest"
-  WHEN age = (SELECT MIN (age) FROM bigquery-public-data.thelook_ecommerce.users)
-  THEN "youngest"
-  ELSE NULL
-END AS tag
+-- find the smallest age and largest age for each gender
+WITH min_max_age AS 
+(SELECT gender,
+MIN(age) AS min_age,
+MAX (age) AS max_age 
 FROM bigquery-public-data.thelook_ecommerce.users
-WHERE created_at BETWEEN "2019-01-01" AND "2022-04-30"),
-oldest AS (
-SELECT age,
-SUM (CASE WHEN tag = "oldest" THEN 1 ELSE 0 END) AS total
-FROM a
-WHERE tag = "oldest"
-GROUP BY age),
-youngest AS (
-SELECT age,
-SUM (CASE WHEN tag = "youngest" THEN 1 ELSE 0 END) AS total
-FROM a
-WHERE tag = "youngest"
-GROUP BY age)
-SELECT age, total FROM oldest
-UNION ALL
-SELECT age, total FROM youngest
-/* Insight: The youngest customer age is 12 with 1175 users. The oldest age is 70 with 1129 users*/
+GROUP BY gender),
+-- male customers (youngest + oldest)
+male AS 
+(SELECT first_name, last_name, gender,age ,
+CASE 
+  WHEN age = (SELECT min_age FROM min_max_age WHERE gender='M') THEN 'youngest'
+  ELSE 'oldest'
+END AS tag 
+FROM bigquery-public-data.thelook_ecommerce.users
+WHERE gender ='M' 
+AND (age = (SELECT min_age FROM min_max_age WHERE gender='M')
+OR age = (SELECT max_age FROM min_max_age WHERE gender='M'))),
+--female customers (youngest + oldest)
+female AS
+(SELECT first_name, last_name, gender,age ,
+CASE 
+  WHEN age = (SELECT min_age FROM min_max_age WHERE gender='F') THEN 'youngest'
+  ELSE 'oldest'
+END AS tag 
+FROM bigquery-public-data.thelook_ecommerce.users
+WHERE gender ='F' 
+AND (age = (SELECT min_age FROM min_max_age WHERE gender='F')
+OR age = (SELECT max_age FROM min_max_age WHERE gender='F'))),
+-- male + female (youngest + oldest)
+c AS (
+SELECT * FROM male
+UNION ALL 
+SELECT * FROM female)
+SELECT
+gender, age, tag, COUNT (*) AS total
+FROM c
+GROUP BY gender, age, tag
+/* Insight: The youngest customer age is 12. The oldest age is 70. -> More attracted to oldest customer*/
 -- 4: Top 5 products each month
+-- Extract the time under the form of yyyy-mm
 WITH d AS (
 SELECT product_id, EXTRACT (YEAR FROM created_at) ||"-"|| EXTRACT (MONTH FROM created_at) AS time
 FROM bigquery-public-data.thelook_ecommerce.order_items),
 e AS (
 SELECT product_id, CASE WHEN LENGTH (time) <7 THEN LEFT (time,5) || "0" || RIGHT (time,1) ELSE time END AS month_year
 FROM d),
+-- Calculate the profit of each item
 c AS
 (SELECT p.id, o.sale_price-p.cost AS profit 
 FROM bigquery-public-data.thelook_ecommerce.products AS p
 JOIN bigquery-public-data.thelook_ecommerce.order_items AS o
 ON p.id=o.product_id
 GROUP BY p.id,o.sale_price, p.cost),
+-- Calculate total order of each month
 a AS (
 SELECT DISTINCT b.id, e.month_year,
 COUNT (b.order_id) OVER (PARTITION BY b.id, e.month_year) AS total_order
 FROM bigquery-public-data.thelook_ecommerce.order_items AS b
 JOIN e ON b.id=e.product_id),
+-- calculate the total profit in each category
 i AS (
 SELECT a.month_year, a.id AS product_id,
 g.name AS product_name, h.sale_price AS sale, g.cost, c.profit*a.total_order AS profit
@@ -95,6 +111,7 @@ JOIN bigquery-public-data.thelook_ecommerce.order_items AS h ON g.id=h.product_i
 JOIN a ON a.id=g.id
 JOIN c ON c.id=a.id
 WHERE h.status = "Complete"),
+-- Find top 5 
 ranking AS (
 SELECT month_year, product_id, product_name, sale, cost, profit,
 DENSE_RANK () OVER (PARTITION BY month_year ORDER BY profit DESC) AS rank_per_month
