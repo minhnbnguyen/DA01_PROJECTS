@@ -116,7 +116,7 @@ FROM ranking
 WHERE rank_per_month IN (1,2,3,4,5)
 GROUP BY month_year, product_id, product_name, sale, cost, profit, rank_per_month
 ORDER BY month_year, rank_per_month
--- 5: Revenue for each product category (haven't finished)
+-- 5: Revenue for each product category
 SELECT *
 FROM (
 SELECT 
