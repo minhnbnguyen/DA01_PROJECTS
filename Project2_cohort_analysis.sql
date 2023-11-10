@@ -1,30 +1,21 @@
-WITH rev_order AS (
+-- Part 2 of project 2. In this part, I performed cohort analysis to give further insights into the company's business. The first step is to create the metric below
+CREATE VIEW bigquery-public-data.thelook_ecommerce.vw_ecommerce_analyst AS
+-- Calculate Total order, total revenue, total profit and total cost
+WITH cte1 AS (
 SELECT
-FORMAT_DATE('%Y-%m', DATE (a.created_at)) AS month_year,
-(SUM (b.sale_price) - SUM (c.cost)) AS TPV,
-COUNT (a.order_id) AS TPO,
-SUM (c.cost) AS total_cost
+FORMAT_DATE('%Y-%m', DATE (a.created_at)) AS month_year, EXTRACT (YEAR FROM a.created_at) AS year,
+c.category AS product_category, (SUM (b.sale_price) - SUM (c.cost)) AS TPV,
+COUNT (a.order_id) AS TPO, SUM (c.cost) AS total_cost,
+((SUM (b.sale_price) - SUM (c.cost)) - SUM (c.cost)) AS total_profit
 FROM bigquery-public-data.thelook_ecommerce.orders AS a 
 JOIN bigquery-public-data.thelook_ecommerce.order_items AS b
 ON a.order_id=b.order_id
 JOIN bigquery-public-data.thelook_ecommerce.products AS c
 ON b.product_id=c.id
-GROUP BY FORMAT_DATE('%Y-%m', DATE (a.created_at))),
--- Calculate revenue growth and order growth
-growth AS (
-SELECT month_year,
-100*(revenue - LAG (revenue) OVER (ORDER BY month_year ASC))/(revenue + LAG (revenue) OVER (ORDER BY month_year ASC)) ||'%' AS revenue_growth,
-100*(orders - LAG (orders) OVER (ORDER BY month_year ASC))/((orders + LAG (orders) OVER (ORDER BY month_year ASC))) ||'%' AS order_growth
-FROM rev_order),
--- Calculate total profit
-profit AS (
-SELECT revenue,
-(revenue - total_cost) AS total_profit
-FROM rev_order),
--- Calculate profit to cost ratio
-ptc AS (
-SELECT revenue/total_profit AS profit_to_cost_ratio
-FROM profit)
--- create dataset
-SELECT rev_order.month_year, EXTRACT (YEAR FROM a.created_at), c.category AS product_category, rev_order.TPV, rev_order.TPO,
-growth.revenue_growth, growth.order_growth, profit.total_profit, ptc.profit_to_cost_ratio
+GROUP BY FORMAT_DATE('%Y-%m', DATE (a.created_at)), c.category, EXTRACT (YEAR FROM a.created_at))
+-- CREATE view table with revenue growth, order growth, profit to cost ratio
+SELECT month_year, year, product_category, TPV, TPO,
+100*(TPV - LAG (TPV) OVER (PARTITION BY product_category ORDER BY month_year ASC))/(TPV + LAG (TPV) OVER (PARTITION BY product_category ORDER BY month_year ASC)) ||'%' AS revenue_growth,
+100*(TPO - LAG (TPO) OVER (PARTITION BY product_category ORDER BY month_year ASC))/(TPO + LAG (TPO) OVER (PARTITION BY product_category ORDER BY month_year ASC)) ||'%' AS order_growth,
+total_cost, total_profit, total_profit/cte1.total_cost AS profit_to_cost_ratio
+FROM cte1
