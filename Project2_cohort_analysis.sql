@@ -20,21 +20,14 @@ SELECT month_year, year, product_category, TPV, TPO,
 total_cost, total_profit, total_profit/cte1.total_cost AS profit_to_cost_ratio
 FROM cte1
 -- Cohort Chart 
-WITH amount AS
-(SELECT o.user_id, o.created_at, SUM (o.num_of_item*i.sale_price) AS amount
-FROM bigquery-public-data.thelook_ecommerce.orders AS o
-JOIN bigquery-public-data.thelook_ecommerce.order_items AS i
-ON o.user_id=i.user_id
-GROUP BY o.user_id, o.created_at),
-thelook_index AS (
+WITH thelook_index AS (
 SELECT user_id, first_purchase_date, day,
 (EXTRACT (YEAR FROM day) - EXTRACT (YEAR FROM first_purchase_date))*12+(EXTRACT (MONTH FROM day) - EXTRACT (MONTH FROM first_purchase_date)) + 1 AS index
 FROM (
 SELECT user_id, FIRST_VALUE (created_at) OVER (PARTITION BY user_id ORDER BY created_at) AS first_purchase_date,
 LEAD (created_at) OVER (PARTITION BY user_id ORDER BY created_at ASC) AS day
 FROM bigquery-public-data.thelook_ecommerce.orders)c)
-SELECT thelook_index.first_purchase_date, thelook_index.index, COUNT (DISTINCT thelook_index.user_id) AS cnt,
-SUM (amount.amount) AS revenue
-FROM thelook_index JOIN amount ON thelook_index.user_id=amount.user_id
-GROUP BY thelook_index.first_purchase_date, thelook_index.index
-HAVING thelook_index.index <=3
+SELECT FORMAT_DATE('%Y-%m-%d', DATE (first_purchase_date)) AS cohort_date, index, COUNT (DISTINCT user_id) AS cnt,
+FROM thelook_index
+GROUP BY first_purchase_date, index
+HAVING index <=3
