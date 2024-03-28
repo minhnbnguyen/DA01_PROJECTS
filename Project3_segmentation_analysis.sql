@@ -89,12 +89,7 @@ FROM sales_dataset_rfm_prj
 WHERE quantityordered < (SELECT MIN (Q1 - 1.5*IQR) FROM a)
 OR quantityordered > (SELECT MAX (Q3 + 1.5*IQR) FROM a)
 -- Step 6: Clean the outlier
--- Option 1: Delete
 DELETE FROM TABLE sales_dataset_rfm_prj
-WHERE quantityordered IN (SELECT quantityordered FROM outlier);
--- Option 2: Update with the average quantity
-UPDATE sales_dataset_rfm_prj
-SET quantityordered = AVG (quantityordered)
 WHERE quantityordered IN (SELECT quantityordered FROM outlier);
 -- Begin Analysis
 -- Which month has the highest revenue?
