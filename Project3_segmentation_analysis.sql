@@ -150,4 +150,4 @@ SELECT customername,
 CAST (r_score AS VARCHAR)|| CAST (f_score AS VARCHAR) || CAST (m_score AS VARCHAR) AS seg_score
 FROM segmentation_score) AS a
 JOIN segment_score AS b ON a.seg_score=b.scores
--- Visualization & business insights with Tableau -> Check Project 1 visualization
+-- Visualization & business insights with Tableau -> Check Project 2 visualization
