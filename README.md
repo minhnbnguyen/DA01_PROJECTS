@@ -2,7 +2,7 @@
 
 💫 This project implements RFM (Recency, Frequency, Monetary value) analysis to segment customers into 10 groups based on their purchasing behavior, using a 5-point scoring system for each RFM dimension.
 
-🚴‍♀️ How I implement this project  
+🚴‍♀️ How I implement this project using [SQL](https://github.com/minhnbnguyen/Project_3_RFM_and_Segmentation_Analysis/blob/main/Project3_RFM_segmentation_analysis.sql) queries   
 🔶 Clean the raw data: convert to suitable data types, check null value, adding new columns for analysis, clean the outliers  
 🔶 Perform ad-hoc analysis to explore the data: month with highest revenue, which product line has the most sale, etc.  
 🔶 Determine the best customers by using RFM analysis  
