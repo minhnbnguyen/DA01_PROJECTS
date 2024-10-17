@@ -1,7 +1,3 @@
-/* Ecommerce Dataset: Exploratory Data Analysis (EDA) and Cohort Analysis in SQL
-TheLook is an ecommerce fashion website. Its data set include information about customers, products, orders, logistics, web events, digital marketing compaigns.
-Access the dataset here:
-https://console.cloud.google.com/marketplace/product/bigquery-public-data/thelook-ecommerce?q=search&referrer=search&project=sincere-torch-350709 */
 -- I) Ad-hoc tasks
 -- 1) Total users and total orders each month
 SELECT 
