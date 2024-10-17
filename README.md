@@ -7,7 +7,7 @@
 🔶 Perform ad-hoc analysis to explore the data: month with highest revenue, which product line has the most sale, etc.  
 🔶 Determine the best customers by using RFM analysis  
 
-🌱 What I accomplished in this project:
+🌱 What I accomplished in this project:  
 🔹 Executed sophisticated statistical analyses in a PostgreSQL database, segmenting customers into 10 distinct categories based on behavior; insights directly influenced marketing strategies, optimizing ad spend allocation and improving ROI  
 🔹 Transformed sales insights into visualization using Tableau; enhanced understanding of customer preferences and engagement behaviors across diverse segments  
 
